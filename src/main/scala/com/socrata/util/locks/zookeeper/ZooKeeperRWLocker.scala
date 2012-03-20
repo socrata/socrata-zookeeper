@@ -5,6 +5,8 @@ import scala.annotation.tailrec
 
 import scala.{collection => sc}
 
+import com.socrata.util.error
+
 import com.socrata.zookeeper
 import zookeeper.ZooKeeperProvider
 import zookeeper.ZooKeeper
