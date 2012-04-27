@@ -18,9 +18,11 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
 
   import ZooKeeperProvider._
 
+  private var closed = false
   private var zookeeper: ZKWatcher = null
 
   private def openZK() = synchronized {
+    if(closed) throw new IllegalStateException("ZooKeeperProvider is closed")
     try {
       zookeeper = new ZKWatcher
     } catch {
@@ -38,6 +40,7 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
         zookeeper.zookeeper.close()
         zookeeper = null
       }
+      closed = true
     }
   }
 
@@ -99,7 +102,7 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
     val deadline = nowPlus(timeout)
 
     synchronized {
-      while((keeper eq getRaw()) && (keeper.getState != zk.ZooKeeper.States.CONNECTED) && (keeper.getState != zk.ZooKeeper.States.CLOSED)) {
+      while(!closed && (keeper eq getRaw()) && (keeper.getState != zk.ZooKeeper.States.CONNECTED) && (keeper.getState != zk.ZooKeeper.States.CLOSED)) {
         log.debug("Waiting for connected-state...")
 
         val sleepTime = deadline - System.currentTimeMillis()
