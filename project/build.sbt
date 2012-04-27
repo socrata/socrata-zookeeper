@@ -1,7 +1,10 @@
-resolvers := Seq("socrata maven" at ("http://" + System.getProperty("socrata.maven.host", "nexus.socrata.com") + "/nexus/content/groups/public/"))
+resolvers := Seq(
+  "socrata maven" at "https://repo.socrata.com/artifactory/libs-release",
+  Resolver.url("socrata ivy", new URL("https://repo.socrata.com/artifactory/ivy-libs-release"))(Resolver.ivyStylePatterns)
+)
 
 externalResolvers <<= resolvers map { rs =>
   Resolver.withDefaultResolvers(rs, mavenCentral = false, scalaTools = false)
 }
 
-addSbtPlugin("com.socrata" % "sbt-common" % "1.0.0")
+addSbtPlugin("com.socrata" % "socrata-sbt" % "0.0.4")
