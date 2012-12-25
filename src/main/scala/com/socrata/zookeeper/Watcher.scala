@@ -44,10 +44,16 @@ case class NodeChildrenChanged(path: String) extends NodeEvent with ChildrenEven
 
 sealed abstract class ConnectionState
 object ConnectionState {
+  import zk.Watcher.Event.{KeeperState => KS}
   def apply(state: zk.Watcher.Event.KeeperState) = state match {
-    case zk.Watcher.Event.KeeperState.Disconnected => Disconnected
-    case zk.Watcher.Event.KeeperState.Expired => Expired
-    case zk.Watcher.Event.KeeperState.SyncConnected => Connected
+    case KS.Disconnected => Disconnected
+    case KS.Expired => Expired
+    case KS.SyncConnected | KS.ConnectedReadOnly => Connected
+    case KS.AuthFailed | KS.NoSyncConnected | KS.SaslAuthenticated | KS.Unknown =>
+      // none of these should happen in our setup (NoSyncConnected
+      // and Unknown never happen; we don't use auth).  This is just
+      // to keep the compiler happy.
+      Disconnected
   }
 }
 

@@ -4,15 +4,15 @@ seq(socrataSettings(): _*)
 
 name := "socrata-zookeeper"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.0"
 
-crossScalaVersions := Seq("2.8.1", "2.9.2")
+crossScalaVersions := Seq("2.8.1", "2.9.2", "2.10.0")
 
 libraryDependencies <++= (slf4jVersion) { slf4jVersion =>
   Seq(
-    "com.socrata" %% "socrata-utils" % "0.5.0",
+    "com.socrata" %% "socrata-utils" % "0.5.1",
     "org.slf4j" % "slf4j-log4j12" % slf4jVersion, // zoookeeperrrr!  When 3.5 comes out maybe we can get rid of this...
-    "org.apache.zookeeper" % "zookeeper" % "3.4.3"
+    "org.apache.zookeeper" % "zookeeper" % "3.4.5"
   )
 }
 
