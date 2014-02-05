@@ -87,6 +87,10 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
 
   private [zookeeper] def getRaw() = synchronized {
     if(zookeeper == null) openZK()
+    else if(!zookeeper.zookeeper.getState.isAlive) {
+      nullZK(zookeeper)
+      openZK()
+    }
     zookeeper.zookeeper
   }
 
