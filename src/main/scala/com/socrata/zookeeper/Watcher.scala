@@ -49,7 +49,7 @@ object ConnectionState {
     case KS.Disconnected => Disconnected
     case KS.Expired => Expired
     case KS.SyncConnected | KS.ConnectedReadOnly => Connected
-    case KS.AuthFailed | KS.NoSyncConnected | KS.SaslAuthenticated | KS.Unknown =>
+    case _ =>
       // none of these should happen in our setup (NoSyncConnected
       // and Unknown never happen; we don't use auth).  This is just
       // to keep the compiler happy.

@@ -6,6 +6,7 @@ import java.io.IOException
 import com.socrata.util.concurrent.thread
 import com.socrata.util.concurrent.Executor
 import com.socrata.util.concurrent.implicits._
+import scala.language.implicitConversions
 
 class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Executor) {
   def this(connectSpec: String, sessionTimeout: Int, exec: java.util.concurrent.Executor) =
@@ -131,7 +132,7 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
           field.get(c)
       }
     }
-    implicit def bypassProtection(c: AnyRef) = new ProtectionByPasser(c)
+    implicit def bypassProtection(c: AnyRef): ProtectionByPasser = new ProtectionByPasser(c)
 
     waitUntilConnected(getRaw())
     val cnxn = getRaw().f("cnxn")
