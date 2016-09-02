@@ -266,7 +266,7 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
                 if(serial == mySerial) { // oh hey while finding the first ticket I acquired the lock!
                   return gotTheLock()
                 }
-                log.info("Waited to long to acquire the lock.  The holder-info is {}", ticketContents)
+                log.info("Waited too long to acquire the lock.  The holder-info is {}", ticketContents)
               case None =>
                 log.warn("There are NO tickets waiting?  Not even mine?")
             }
