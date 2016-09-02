@@ -13,6 +13,7 @@ import zookeeper.ZooKeeperProvider
 import zookeeper.ZooKeeper
 import zookeeper.results._
 import java.util.concurrent.TimeUnit
+import java.nio.charset.StandardCharsets
 import org.joda.time.DateTime
 
 class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
@@ -193,6 +194,30 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
       }
     }
 
+    @tailrec def ticketContents(ticketName: String): Option[String] = {
+      zk.read(root + "/" + ticketName) match {
+        case Read.OK(data, _) =>
+          Some(new String(data, StandardCharsets.ISO_8859_1))
+        case NotFound =>
+          None
+        case ConnectionLost =>
+          zk.waitUntilConnected()
+          ticketContents(ticketName)
+        case SessionExpired =>
+          restart()
+      }
+    }
+
+    def firstTicket(): Option[(Long, String)] = {
+      allTickets().toSeq.map { t => (t, ticket2serial(t)) }.sortBy(_._2).foreach { case (ticketName, ticketSerial) =>
+        println(ticketName)
+        ticketContents(ticketName).foreach { contents =>
+          return Some((ticketSerial, contents))
+        }
+      }
+      None
+    }
+
     @tailrec def deleteTicket(ticket: String) {
       zk.deleteAnyVersion(root + "/" + ticket) match {
         case DeleteAnyVersion.OK | NotFound => { /* ok */ }
@@ -220,18 +245,31 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
 
         val (precedingTicketNums, precedingTickets) = (tickets.map(ticket2serial), tickets).zipped.filter { (ticketNum, ticket) => ticketNum < mySerial }
 
-        if(precedingTicketNums.isEmpty) {
+        def gotTheLock(): Locked = {
           log.debug("Got the lock")
           // appendToTicket(zk, myTicketPath, "I own the lock\n".getBytes)
           val unlocker = new ZooUnlocker(zk, id, root, myTicket, 1)
           heldLocks += id -> unlocker
           return Locked(unlocker)
+        }
+
+        if(precedingTicketNums.isEmpty) {
+          return gotTheLock()
         } else if(precedingTicketNums.size > maxWaiters) {
           deleteTicket(myTicket)
           return TooManyWaiters
         } else {
           val now = System.currentTimeMillis
           if(deadline <= now) {
+            firstTicket() match {
+              case Some((serial, ticketContents)) =>
+                if(serial == mySerial) { // oh hey while finding the first ticket I acquired the lock!
+                  return gotTheLock()
+                }
+                log.info("Waited too long to acquire the lock.  The holder-info is {}", ticketContents)
+              case None =>
+                log.warn("There are NO tickets waiting?  Not even mine?")
+            }
             deleteTicket(myTicket)
             return TooLongWait
           }
