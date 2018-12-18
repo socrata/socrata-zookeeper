@@ -1,5 +1,5 @@
 resolvers := Seq(
-  "Socrata maven" at "https://repository-socrata-oss.forge.cloudbees.com/release"
+  Resolver.url("Socrata", url("https://repo.socrata.com/artifactory/ivy-libs-release"))(Resolver.ivyStylePatterns)
 )
 
-addSbtPlugin("com.socrata" % "socrata-sbt-plugins" % "1.6.1")
+addSbtPlugin("com.socrata" % "socrata-sbt-plugins" % "1.6.8")
