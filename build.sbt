@@ -8,7 +8,7 @@ scalaVersion := "2.12.8"
 
 crossScalaVersions := Seq("2.10.6", "2.11.7", scalaVersion.value)
 
-mimaPreviousArtifacts := Set("com.socrata" %% "socrata-zookeeper" % "1.0.2")
+mimaPreviousArtifacts := Set("com.socrata" %% "socrata-zookeeper" % "1.1.0")
 
 libraryDependencies ++= Seq(
   "com.socrata" %% "socrata-utils" % "0.11.0",
