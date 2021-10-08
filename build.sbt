@@ -19,3 +19,16 @@ libraryDependencies ++= Seq(
 scalacOptions ++= Seq(
   "-deprecation"
 )
+
+resolvers := Seq(
+  "socrata maven" at "https://repo.socrata.com/artifactory/libs-release",
+  Resolver.url("socrata ivy", new URL("https://repo.socrata.com/artifactory/ivy-libs-release"))(Resolver.ivyStylePatterns)
+)
+
+publishTo := {
+  val nexus = "https://repo.socrata.com/artifactory/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "libs-snapshot-local")
+  else
+    Some("releases" at nexus + "libs-release-local")
+}
