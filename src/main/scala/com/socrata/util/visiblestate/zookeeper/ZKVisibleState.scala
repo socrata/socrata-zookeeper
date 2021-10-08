@@ -24,16 +24,16 @@ class ZKVisibleState(zkp: ZooKeeperProvider, name: String) extends VisibleState 
     }
   }
 
-  def set(value: =>String) {
+  def set(value: =>String): Unit = {
     saveIt(value.getBytes("UTF-8"))
   }
 
-  def clear() {
+  def clear(): Unit = {
     deleteIt()
   }
 
   @tailrec
-  private def deleteIt() {
+  private def deleteIt(): Unit = {
     zkp.get().deleteAnyVersion(filename) match {
       case DeleteAnyVersion.OK | NotFound => // ok
       case NotEmpty =>
@@ -47,7 +47,7 @@ class ZKVisibleState(zkp: ZooKeeperProvider, name: String) extends VisibleState 
   }
 
   @tailrec
-  private def saveIt(s: Array[Byte]) {
+  private def saveIt(s: Array[Byte]): Unit = {
     zkp.get().writeAnyVersion(filename, s) match {
       case WriteAnyVersion.OK(_) =>
         // done

@@ -3,11 +3,11 @@
 import org.apache.{zookeeper => zk}
 
 abstract class Watcher extends zk.Watcher {
-  final def process(event: zk.WatchedEvent) {
+  final def process(event: zk.WatchedEvent): Unit = {
     process(WatchedEvent(event))
   }
 
-  def process(event: WatchedEvent)
+  def process(event: WatchedEvent): Unit
 }
 
 sealed abstract class WatchedEvent

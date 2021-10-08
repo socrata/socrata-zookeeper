@@ -21,7 +21,7 @@ class ZKAdvertiser(zkp: ZooKeeperProvider, executor: Executor, root: String) ext
   }
 
   @tailrec
-  private def deregister(registration: RegistrationImpl) {
+  private def deregister(registration: RegistrationImpl): Unit = {
     val zk = try {
       zkp.get()
     } catch {
@@ -48,7 +48,7 @@ class ZKAdvertiser(zkp: ZooKeeperProvider, executor: Executor, root: String) ext
   }
 
   @tailrec
-  private def createNode(registration: RegistrationImpl) {
+  private def createNode(registration: RegistrationImpl): Unit = {
     val zk = try {
       zkp.get()
     } catch {
@@ -99,7 +99,7 @@ class ZKAdvertiser(zkp: ZooKeeperProvider, executor: Executor, root: String) ext
         executor.execute { createNode(this) }
     }
 
-    def stopAdvertising() {
+    def stopAdvertising(): Unit = {
       deregister(this)
     }
   }
