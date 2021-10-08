@@ -1,6 +1,6 @@
 package com.socrata.zookeeper
 
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 
 import org.apache.{zookeeper => zk}
 import zk.data.Stat
@@ -11,7 +11,7 @@ class ZooKeeper(private var zookeeper: zk.ZooKeeper, provider: ZooKeeperProvider
 
   import results._
 
-  def reseat() {
+  def reseat(): Unit = {
     zookeeper = provider.getRaw()
   }
 
@@ -69,7 +69,7 @@ class ZooKeeper(private var zookeeper: zk.ZooKeeper, provider: ZooKeeperProvider
       val ccbResult = new Children2CallbackResult
       zookeeper.getChildren(path, watcher, children2Callback, ccbResult)
       val (children, stat) = ccbResult.await()
-      Children.OK(children.toSet, stat)
+      Children.OK(children.asScala.toSet, stat)
     } catch {
       case _: zk.KeeperException.NoNodeException => NotFound
     }
@@ -134,12 +134,12 @@ class ZooKeeper(private var zookeeper: zk.ZooKeeper, provider: ZooKeeperProvider
     }
   }
 
-  def createPath(absolutePath: String) {
+  def createPath(absolutePath: String): Unit = {
     // This either succeeds or fails, but the only way to know is to try to use the result!
     // This is a feature, not a bug, since even if it is created successfully, it might not
     // still be there when you want to use it.
 
-    def loop(path: String) {
+    def loop(path: String): Unit = {
       create(path, persistent = true) match {
         case Create.OK =>
           /* great */
@@ -245,31 +245,31 @@ object ZooKeeper {
   }
 
   val statCallback = new zk.AsyncCallback.StatCallback {
-    def processResult(rc: Int, path: String, ctx: AnyRef, stat: Stat) {
+    def processResult(rc: Int, path: String, ctx: AnyRef, stat: Stat): Unit = {
       if(!handleErrors(ctx, rc, path)) ctx.asInstanceOf[StatCallbackResult].result(stat)
     }
   }
 
   val stringCallback = new zk.AsyncCallback.StringCallback {
-    def processResult(rc: Int, path: String, ctx: AnyRef, str: String) {
+    def processResult(rc: Int, path: String, ctx: AnyRef, str: String): Unit = {
       if(!handleErrors(ctx, rc, path)) ctx.asInstanceOf[StringCallbackResult].result(str)
     }
   }
 
   val dataCallback = new zk.AsyncCallback.DataCallback {
-    def processResult(rc: Int, path: String, ctx: AnyRef, data: Array[Byte], stat: Stat) {
+    def processResult(rc: Int, path: String, ctx: AnyRef, data: Array[Byte], stat: Stat): Unit = {
       if(!handleErrors(ctx, rc, path)) ctx.asInstanceOf[DataCallbackResult].result((data, stat))
     }
   }
 
   val children2Callback = new zk.AsyncCallback.Children2Callback {
-    def processResult(rc: Int, path: String, ctx: AnyRef, children: java.util.List[String], stat: Stat) {
+    def processResult(rc: Int, path: String, ctx: AnyRef, children: java.util.List[String], stat: Stat): Unit = {
       if(!handleErrors(ctx, rc, path)) ctx.asInstanceOf[Children2CallbackResult].result((children, stat))
     }
   }
 
   val voidCallback = new zk.AsyncCallback.VoidCallback {
-    def processResult(rc: Int, path: String, ctx: AnyRef) {
+    def processResult(rc: Int, path: String, ctx: AnyRef): Unit = {
       if(!handleErrors(ctx, rc, path)) ctx.asInstanceOf[VoidCallbackResult].result({})
     }
   }

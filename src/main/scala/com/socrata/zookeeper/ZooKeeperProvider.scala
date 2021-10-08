@@ -31,11 +31,11 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
     }
   }
 
-  def expire() {
+  def expire(): Unit = {
     expireIfStillCurrent(getRaw())
   }
 
-  def close() {
+  def close(): Unit = {
     synchronized {
       if(zookeeper != null) {
         zookeeper.zookeeper.close()
@@ -45,7 +45,7 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
     }
   }
 
-  private [zookeeper] def expireIfStillCurrent(oldZK: zk.ZooKeeper) {
+  private [zookeeper] def expireIfStillCurrent(oldZK: zk.ZooKeeper): Unit = {
     waitUntilConnected(oldZK)
     val mutex = new Object
     var connected = false
@@ -123,7 +123,7 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
     notifyAll()
   }
 
-  def pause(ms: Long) {
+  def pause(ms: Long): Unit = {
     // derived from the "TestableZooKeeper" object in the ZK test code
     class ProtectionByPasser(c: AnyRef) {
       def f(x: String) = {
@@ -139,7 +139,7 @@ class ZooKeeperProvider(connectSpec: String, sessionTimeout: Int, executor: Exec
     val thread = new Thread {
         setName("Zookeeper pause")
         setDaemon(true)
-        override def run() {
+        override def run(): Unit = {
             cnxn.synchronized {
                 import java.nio.channels._
                 cnxn.f("sendThread").f("sockKey").asInstanceOf[SelectionKey].channel.asInstanceOf[SocketChannel].socket.close()

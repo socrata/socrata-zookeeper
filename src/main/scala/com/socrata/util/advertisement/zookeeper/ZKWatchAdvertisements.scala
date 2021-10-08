@@ -18,7 +18,7 @@ class ZKWatchAdvertisements(zkp: ZooKeeperProvider, private val executor: Execut
   private var state = Unstarted
   @volatile private var unhandledChangeEventInFlight = false
 
-  final def start(onChange: WatchAdvertisements => Unit) {
+  final def start(onChange: WatchAdvertisements => Unit): Unit = {
     synchronized {
       if(state == Stopped) throw new IllegalStateException("Cannot be restarted")
       if(state == Started) throw new IllegalStateException("Already started")
@@ -30,7 +30,7 @@ class ZKWatchAdvertisements(zkp: ZooKeeperProvider, private val executor: Execut
 
   def current = nodes
 
-  def stop() {
+  def stop(): Unit = {
     synchronized {
       state = Stopped
 
@@ -47,7 +47,7 @@ class ZKWatchAdvertisements(zkp: ZooKeeperProvider, private val executor: Execut
     }
   }
 
-  private def reloadNodes() {
+  private def reloadNodes(): Unit = {
     while(true) {
       val waitBeforeRetry = synchronized {
         if(state == Stopped) {
@@ -107,13 +107,13 @@ object ZKWatchAdvertisements {
   private final val Stopped = 2
 
   private class AdvertWatcher(private var advertisement: ZKWatchAdvertisements) extends Watcher {
-    def clear() {
+    def clear(): Unit = {
       synchronized {
         advertisement = null
       }
     }
 
-    def process(ev: WatchedEvent) {
+    def process(ev: WatchedEvent): Unit = {
       ev match {
         case ConnectionStateChanged(Disconnected) =>
           log.trace("Got disconnected")

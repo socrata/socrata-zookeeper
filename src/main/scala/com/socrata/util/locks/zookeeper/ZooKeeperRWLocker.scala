@@ -18,7 +18,7 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
   val log = org.slf4j.LoggerFactory.getLogger(classOf[ZooKeeperLocker])
   val updaterRoot = "/rwlocks"
   
-  def scan() {
+  def scan(): Unit = {
     val zk = provider.get()
     zk.children(updaterRoot) match {
       case Children.OK(children, _) =>
@@ -31,8 +31,8 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
   private class Restart extends scala.util.control.ControlThrowable
   private def restart() = throw new Restart
   
-  private def touch(zk: ZooKeeper, path: String) {
-    @tailrec def loop() {
+  private def touch(zk: ZooKeeper, path: String): Unit = {
+    @tailrec def loop(): Unit = {
       zk.create(path, persistent = true) match {
         case Create.OK | AlreadyExists =>
           log.debug("Touched " + path)
@@ -204,7 +204,7 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
     cTimeLoop()
   }
 
-  def appendToTicket(zk: ZooKeeper, file: String, additionalData: Array[Byte]) {
+  def appendToTicket(zk: ZooKeeper, file: String, additionalData: Array[Byte]): Unit = {
       def read(): (Array[Byte], Int) =
           zk.read(file) match {
               case Read.OK(data, stat) =>
@@ -300,7 +300,7 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
       }
     }
 
-    @tailrec def deleteTicket(ticket: String) {
+    @tailrec def deleteTicket(ticket: String): Unit = {
       zk.deleteAnyVersion(root + "/" + ticket) match {
         case DeleteAnyVersion.OK | NotFound => { /* ok */ }
         case NotEmpty =>
@@ -320,10 +320,10 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
       val mySerial = ticket2serial(myTicket)
       
       while(true) {
-        val tickets: List[String] = allTickets().flatMap { ticket =>
-          if(ticket.startsWith(lockBase) && ticket != myTicket) { deleteTicket(ticket); Nil } // I created it, lost connection, and created a new one
-          else List(ticket)
-        } (sc.breakOut)
+        val tickets: List[String] = allTickets().iterator.flatMap { ticket =>
+          if(ticket.startsWith(lockBase) && ticket != myTicket) { deleteTicket(ticket); Iterator.empty } // I created it, lost connection, and created a new one
+          else Iterator(ticket)
+        }.toList
 
         ahead(myTicket, tickets.sortBy(ticket2serial)) match {
           case GotIt(heldLocks) =>
@@ -344,7 +344,7 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
 
             val sem = new java.util.concurrent.Semaphore(0)
 
-            def watcher(event: zookeeper.ReadEvent) {
+            def watcher(event: zookeeper.ReadEvent): Unit = {
               import zookeeper._
               log.debug("{}",event)
 
@@ -378,7 +378,7 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
   }
   
   private class ZooUnlocker(zk: ZooKeeper, id: String, root: String, myTicket: String, var count: Int) extends Unlocker {
-    @tailrec private def deleteTicket() {
+    @tailrec private def deleteTicket(): Unit = {
       zk.deleteAnyVersion(root + "/" + myTicket) match {
         case DeleteAnyVersion.OK =>
           log.debug("Lock release successful")
@@ -394,7 +394,7 @@ class ZooKeeperRWLocker(provider: ZooKeeperProvider) extends RWLocker {
       }
     }
     
-    def unlock() {
+    def unlock(): Unit = {
       if(count == 1) {
         heldReadLocks -= id // I can only be holding one at a time...
         heldWriteLocks -= id // ...so remove from both

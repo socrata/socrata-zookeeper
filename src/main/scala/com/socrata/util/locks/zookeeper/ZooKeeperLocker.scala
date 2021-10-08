@@ -2,6 +2,8 @@ package com.socrata.util.locks
 package zookeeper
 
 import scala.annotation.tailrec
+import scala.collection.compat._
+import scala.collection.compat.immutable.LazyList
 
 import scala.{collection => sc}
 import sc.{immutable => sci}
@@ -20,7 +22,7 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
   val log = org.slf4j.LoggerFactory.getLogger(classOf[ZooKeeperLocker])
   val updaterRoot = "/locks"
 
-  def scan() {
+  def scan(): Unit = {
     val zk = provider.get()
     zk.children(updaterRoot) match {
       case Children.OK(children, _) =>
@@ -33,8 +35,8 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
   private class Restart extends scala.util.control.ControlThrowable
   private def restart() = throw new Restart
 
-  private def touch(zk: ZooKeeper, path: String) {
-    @tailrec def loop() {
+  private def touch(zk: ZooKeeper, path: String): Unit = {
+    @tailrec def loop(): Unit = {
       zk.create(path, persistent = true) match {
         case Create.OK | AlreadyExists =>
           log.debug("Touched " + path)
@@ -127,7 +129,7 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
     cTimeLoop()
   }
 
-  def appendToTicket(zk: ZooKeeper, file: String, additionalData: Array[Byte]) {
+  def appendToTicket(zk: ZooKeeper, file: String, additionalData: Array[Byte]): Unit = {
       def read(): (Array[Byte], Int) =
           zk.read(file) match {
               case Read.OK(data, stat) =>
@@ -218,7 +220,7 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
       None
     }
 
-    @tailrec def deleteTicket(ticket: String) {
+    @tailrec def deleteTicket(ticket: String): Unit = {
       zk.deleteAnyVersion(root + "/" + ticket) match {
         case DeleteAnyVersion.OK | NotFound => { /* ok */ }
         case NotEmpty =>
@@ -238,12 +240,12 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
       val mySerial = ticket2serial(myTicket)
 
       while(true) {
-        val tickets: List[String] = allTickets().flatMap { ticket =>
-          if(ticket.startsWith(lockBase) && ticket != myTicket) { deleteTicket(ticket); Nil } // I created it, lost connection, and created a new one
-          else List(ticket)
-        } (sc.breakOut)
+        val tickets: List[String] = allTickets().iterator.flatMap { ticket =>
+          if(ticket.startsWith(lockBase) && ticket != myTicket) { deleteTicket(ticket); Iterator.empty } // I created it, lost connection, and created a new one
+          else Iterator(ticket)
+        }.toList
 
-        val (precedingTicketNums, precedingTickets) = (tickets.map(ticket2serial), tickets).zipped.filter { (ticketNum, ticket) => ticketNum < mySerial }
+        val (precedingTicketNums, precedingTickets) = tickets.map(ticket2serial).zip(tickets).filter { case (ticketNum, ticket) => ticketNum < mySerial }.unzip
 
         def gotTheLock(): Locked = {
           log.debug("Got the lock")
@@ -274,11 +276,16 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
             return TooLongWait
           }
 
-          val orderedTickets: sci.SortedMap[Long, String] = precedingTicketNums.zip(precedingTickets)(sc.breakOut)
+          val orderedTickets: sci.SortedMap[Long, String] = {
+            val result = sci.SortedMap.newBuilder[Long, String]
+            result ++= precedingTicketNums.lazyZip(precedingTickets).to(LazyList)
+            result.result()
+          }
+
           val lastToGo = orderedTickets.last._2
           val sem = new java.util.concurrent.Semaphore(0)
 
-          def watcher(event: zookeeper.ReadEvent) {
+          def watcher(event: zookeeper.ReadEvent): Unit = {
             import zookeeper._
             log.debug("{}",event)
             event match {
@@ -317,7 +324,7 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
   }
 
   private class ZooUnlocker(zk: ZooKeeper, id: String, root: String, myTicket: String, var count: Int) extends Unlocker {
-    @tailrec private def deleteTicket() {
+    @tailrec private def deleteTicket(): Unit = {
       zk.deleteAnyVersion(root + "/" + myTicket) match {
         case DeleteAnyVersion.OK =>
           log.debug("Lock release successful")
@@ -333,7 +340,7 @@ class ZooKeeperLocker(provider: ZooKeeperProvider) extends Locker {
       }
     }
 
-    def unlock() {
+    def unlock(): Unit = {
       if(count == 1) {
         heldLocks -= id
         deleteTicket()
